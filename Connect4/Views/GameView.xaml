@@ -1,0 +1,273 @@
+﻿<Page x:Class="Connect4.Views.GameView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+      xmlns:local="clr-namespace:Connect4.Views"
+      xmlns:conv="clr-namespace:Connect4.Converters"
+      mc:Ignorable="d" 
+      d:DesignHeight="768" d:DesignWidth="1024"
+      Title="Connect4">
+
+
+    <Page.Resources>
+        <conv:PlayerColorToBrushConverter x:Key="PlayerColorConverter"/>
+        <conv:BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <Style x:Key="CellStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="60"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="Stroke" Value="#003A8C"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+            <Setter Property="Fill"
+                    Value="{Binding State, Converter={StaticResource PlayerColorConverter}}"/>
+        </Style>
+
+        <DropShadowEffect x:Key="DropShadow"
+                          Color="Black"
+                          BlurRadius="20"
+                          ShadowDepth="4"
+                          Opacity="0.4"/>
+
+        <Style x:Key="RoundedButton" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="25"
+                    Padding="{TemplateBinding Padding}"
+                    RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)"
+                                                 To="1.1" Duration="0:0:0.2"/>
+                                            <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)"
+                                                 To="1.1" Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)"
+                                                 To="1" Duration="0:0:0.2"/>
+                                            <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)"
+                                                 To="1" Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="Gray"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Height" Value="50"/>
+        </Style>
+    </Page.Resources>
+
+    <Grid Background="#FFDDEEFF">
+        <Grid Margin="40">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ================== BOARD ================== -->
+            <Border Grid.Column="0"
+                    Width="560"
+                    Height="480"
+                    Background="#0047AB"
+                    CornerRadius="20"
+                    Padding="20"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Effect="{StaticResource DropShadow}">
+
+                <ItemsControl ItemsSource="{Binding Cells}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="6" Columns="7"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Width="60" Height="60">
+                                <!-- Base cell -->
+                                <Ellipse Stroke="#003A8C"
+                                     StrokeThickness="2"
+                                     Fill="{Binding State, Converter={StaticResource PlayerColorConverter}}"/>
+
+                                <!-- Hover overlay -->
+                                <Ellipse x:Name="HoverOverlay"
+                                     Stroke="#003A8C"
+                                     StrokeThickness="2"
+                                     Fill="{Binding DataContext.CurrentPlayer,
+                                            RelativeSource={RelativeSource AncestorType=ItemsControl},
+                                            Converter={StaticResource PlayerColorConverter}}"
+                                            Opacity="0">
+                                    <Ellipse.InputBindings>
+                                        <MouseBinding Gesture="LeftClick"
+                                          Command="{Binding DataContext.DropChipCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                          CommandParameter="{Binding}"/>
+                                    </Ellipse.InputBindings>
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Style.Triggers>
+                                                <!-- Blink only if top row, empty, and mouse over -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding Row}" Value="0"/>
+                                                        <Condition Binding="{Binding State}" Value="{x:Null}"/>
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <MultiDataTrigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         From="0.1" To="1"
+                                                         Duration="0:0:0.5"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </MultiDataTrigger.EnterActions>
+                                                    <MultiDataTrigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.2"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </MultiDataTrigger.ExitActions>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <!-- ================== RIGHT PANEL ================== -->
+            <StackPanel Grid.Column="1">
+                <Separator Opacity="0" Height="80"/>
+
+                <!-- Current Player Info -->
+                <TextBlock Text="{Binding CurrentPlayerText}"
+                TextWrapping="Wrap"
+                FontSize="32"
+                FontWeight="Bold"
+                TextAlignment="Center"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,20"
+                FontFamily="Comic Sans MS"
+                Height="100"/>
+
+                <!-- Red Timer -->
+                <Border Width="200" Height="100" BorderBrush="Black" BorderThickness="5" CornerRadius="12" Padding="10" Margin="0,0,0,10">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="LightGray"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentPlayerTime}" Value="Red">
+                                    <Setter Property="Background" Value="DarkRed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding RedTimerText}" 
+                   FontSize="36"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"/>
+                </Border>
+
+                <!-- Yellow Timer -->
+                <Border Width="200" Height="100" BorderBrush="Black" BorderThickness="5" CornerRadius="12" Padding="10">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="LightGray"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentPlayerTime}" Value="Yellow">
+                                    <Setter Property="Background" Value="Goldenrod"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding YellowTimerText}" 
+                   FontSize="36"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"/>
+                </Border>
+
+                <Separator Opacity="0" Height="95"/>
+
+                <!-- Forfeit Button -->
+                <Button Content="Forfeit" Style="{StaticResource RoundedButton}" BorderThickness="5" BorderBrush="Black" Width ="200" Command="{Binding ForfeitCommand}">
+                    <Button.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#FFFF5252" Offset="0"/>
+                            <GradientStop Color="#FFD32F2F" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Button.Background>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Visibility="{Binding IsGameOver, Converter={StaticResource BoolToVis}}" Background="#80000000" Panel.ZIndex="100">
+            <Border Width="360"
+                Height="220"
+                Background="White"
+                CornerRadius="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="20">
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding GameOverText}"
+                           TextWrapping="Wrap"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           TextAlignment="Center"
+                           FontFamily="Comic Sans MS"
+                           Height="100"
+                           Margin="0,0,0,0"/>
+
+                    <Button Content="Exit" Style="{StaticResource RoundedButton}" BorderThickness="5" BorderBrush="Black" Width ="200" Command="{Binding ExitCommand}">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFFF5252" Offset="0"/>
+                                <GradientStop Color="#FFD32F2F" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
